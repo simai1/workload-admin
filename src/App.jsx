@@ -20,12 +20,12 @@ function App() {
     >
       <Router>
         <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route path="/" element={<Login />} />
+          <Route path="/" element={<Login />} />
+          <Route path="/login" element={<Login />} />
+          <Route element={<Layout />}>
             <Route path="/teachers" element={<Teachers />} />
             <Route path="/workloads" element={<Workload />} />
             <Route path="/sync" element={<Sync />} />
-            <Route index element={<Login />} />
           </Route>
         </Routes>
       </Router>
