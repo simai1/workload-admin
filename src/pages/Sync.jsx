@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Button, CircularProgress, Typography, Box, Card } from '@mui/material';
+import { Button, CircularProgress, Typography, Box, Card, Alert, Collapse, IconButton } from '@mui/material';
 import axios from 'axios';
 import { useSnackbar } from 'notistack';
+import CloseIcon from '@mui/icons-material/Close';
 
 const SyncPage = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [syncStatus, setSyncStatus] = useState(null);
+  const [loadingStatus, setLoadingStatus] = useState(true);
   const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
@@ -25,6 +28,7 @@ const SyncPage = () => {
         }
       }
     }
+    fetchSyncStatus();
   }, []);
 
   useEffect(() => {
@@ -36,6 +40,7 @@ const SyncPage = () => {
             clearInterval(timer);
             setIsSyncing(false);
             localStorage.removeItem('syncState');
+            fetchSyncStatus(); // Обновляем статус после завершения синхронизации
             return 0;
           }
           return prev - 1;
@@ -44,6 +49,23 @@ const SyncPage = () => {
     }
     return () => clearInterval(timer);
   }, [isSyncing, timeLeft]);
+
+  const fetchSyncStatus = async () => {
+    try {
+      setLoadingStatus(true);
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/status`);
+      setSyncStatus(response.data);
+    } catch (error) {
+      console.error('Error fetching sync status:', error);
+      setSyncStatus({
+        status: 'error',
+        message: 'Не удалось получить статус синхронизации',
+        error: error.message
+      });
+    } finally {
+      setLoadingStatus(false);
+    }
+  };
 
   const handleSync = async () => {
     try {
@@ -60,6 +82,8 @@ const SyncPage = () => {
       
       if (response.status === 200) {
         enqueueSnackbar('Синхронизация успешно запущена', { variant: 'success' });
+        // Обновляем статус после небольшой задержки
+        setTimeout(fetchSyncStatus, 2000);
       }
     } catch (error) {
       setIsSyncing(false);
@@ -74,6 +98,7 @@ const SyncPage = () => {
       }
       
       enqueueSnackbar(errorMessage, { variant: 'error' });
+      fetchSyncStatus(); // Обновляем статус при ошибке
     }
   };
 
@@ -109,6 +134,57 @@ const SyncPage = () => {
         <Typography variant="body2" sx={{ mt: 2, color: 'text.secondary' }}>
           Синхронизация может занять несколько минут
         </Typography>
+
+        {/* Блок статуса синхронизации */}
+        <Box sx={{ width: '100%', mt: 4 }}>
+          <Typography variant="h6" sx={{ mb: 1 }}>
+            Статус последней синхронизации
+          </Typography>
+          
+          {loadingStatus ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+              <CircularProgress size={24} />
+            </Box>
+          ) : syncStatus ? (
+            <Collapse in={!!syncStatus}>
+              <Alert
+                severity={syncStatus.status === 'success' ? 'success' : 'error'}
+                sx={{ mb: 2 }}
+                action={
+                  <IconButton
+                    aria-label="close"
+                    color="inherit"
+                    size="small"
+                    onClick={() => setSyncStatus(null)}
+                  >
+                    <CloseIcon fontSize="inherit" />
+                  </IconButton>
+                }
+              >
+                <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                  {syncStatus.status === 'success' ? 'Успешно' : 'Ошибка'}
+                </Typography>
+                <Typography variant="body2">
+                  {syncStatus.message}
+                </Typography>
+                {syncStatus.lastSync && (
+                  <Typography variant="caption" display="block">
+                    Время: {syncStatus.lastSync}
+                  </Typography>
+                )}
+                {syncStatus.error && (
+                  <Typography variant="body2" sx={{ mt: 1, fontFamily: 'monospace' }}>
+                    {syncStatus.error}
+                  </Typography>
+                )}
+              </Alert>
+            </Collapse>
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              Информация о статусе отсутствует
+            </Typography>
+          )}
+        </Box>
       </Box>
     </Card>
   );
