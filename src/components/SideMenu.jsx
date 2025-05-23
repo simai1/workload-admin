@@ -18,7 +18,8 @@ import {
   Menu,
   Person,
   Badge,
-  FlipCameraAndroid
+  FlipCameraAndroid,
+  AssignmentInd
 } from '@mui/icons-material';
 
 const SideMenu = () => {
@@ -31,10 +32,16 @@ const SideMenu = () => {
 
   const menuItems = [
     { 
-      icon: <Person />, 
+      icon: <AssignmentInd />, 
       title: 'Сотрудники', 
       path: '/teachers',
       disabled: location.pathname === '/teachers'
+    },
+    { 
+        icon: <Person />, 
+        title: 'Студенты', 
+        path: '/students',
+        disabled: location.pathname === '/students'
     },
     { 
         icon: <Badge />, 

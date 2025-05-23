@@ -1,27 +1,37 @@
 import React, { useEffect, useState } from 'react';
 import { DataGrid } from '@mui/x-data-grid';
-import { Card, TextField, Button, MenuItem, Select, FormControl, InputLabel, Grid, Checkbox, Typography } from '@mui/material';
+import {
+  Card,
+  TextField,
+  Button,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  Grid,
+  Typography,
+} from '@mui/material';
 import axios from 'axios';
 
-const Teachers = () => {
-  const [teachers, setTeachers] = useState([]);
+const Students = () => {
+  const [students, setStudents] = useState([]);
   const [filterInput, setFilterInput] = useState('');
   const [selectedItem, setSelectedItem] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchTeachers();
+    fetchStudents();
   }, []);
 
-  const fetchTeachers = async () => {
+  const fetchStudents = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/educators`);
-      setTeachers(response.data);
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/students`);
+      setStudents(response.data);
     } catch (error) {
-      console.error('Ошибка загрузки данных преподавателей:', error);
-      setError('Не удалось загрузить данные преподавателей');
+      console.error('Ошибка загрузки данных студентов:', error);
+      setError('Не удалось загрузить данные студентов');
     } finally {
       setLoading(false);
     }
@@ -34,97 +44,51 @@ const Teachers = () => {
 
   const selectItems = [
     { text: 'ФИО', value: 'name' },
-    { text: 'Должность', value: 'position' },
-    { text: 'Тип занятости', value: 'typeOfEmployment' },
     { text: 'Email', value: 'email' },
+    { text: 'Группа', value: 'group' },
+    { text: 'Специализация', value: 'specialization' },
+    { text: 'Курс', value: 'course' },
+    { text: 'Основа', value: 'basis' },
   ];
 
-  const filteredItems = teachers.filter((rowItem) => {
+  const filteredItems = students.filter((rowItem) => {
     if (!selectedItem) return true;
-    return (rowItem[selectedItem] || '').toString().toLowerCase().includes(filterInput.toLowerCase());
+    return (rowItem[selectedItem] || '')
+      .toString()
+      .toLowerCase()
+      .includes(filterInput.toLowerCase());
   });
 
   const columns = [
-    { 
-      field: 'id', 
-      headerName: 'ID', 
-      flex: 1, 
-      align: 'center', 
-      headerAlign: 'center',
+    { field: 'id', headerName: 'ID', flex: 2 },
+    { field: 'name', headerName: 'ФИО', flex: 2 },
+    { field: 'email', headerName: 'Email', flex: 2 },
+    { field: 'group', headerName: 'Группа', flex: 1.5 },
+    { field: 'course', headerName: 'Курс', flex: 1 },
+    { field: 'department', headerName: 'Подразделение', flex: 2 },
+    { field: 'educationForm', headerName: 'Форма обучения', flex: 1.5 },
+    { field: 'basis', headerName: 'Основа', flex: 1.5 },
+    {
+      field: 'specialization',
+      headerName: 'Специализация',
+      flex: 2.5,
     },
-    { 
-      field: 'employeeId', 
-      headerName: 'ID 1C', 
-      flex: 1.5, 
-      align: 'center', 
-      headerAlign: 'center',
+    {
+      field: 'formOfOrder',
+      headerName: 'Форма приказа',
+      flex: 2,
     },
-    { 
-      field: 'name', 
-      headerName: 'ФИО', 
-      flex: 2, 
-      align: 'center', 
-      headerAlign: 'center' 
+    {
+      field: 'hasIndividualPlan',
+      headerName: 'Инд. план',
+      flex: 1,
+      type: 'boolean',
     },
-    { 
-      field: 'email', 
-      headerName: 'Email', 
-      flex: 2, 
-      align: 'center', 
-      headerAlign: 'center' 
-    },
-    { 
-      field: 'department', 
-      headerName: 'Кафедра', 
-      flex: 2, 
-      align: 'center', 
-      headerAlign: 'center' 
-    },
-    { 
-      field: 'typeOfEmployment', 
-      headerName: 'Тип занятости', 
-      flex: 2, 
-      align: 'center', 
-      headerAlign: 'center' 
-    },
-    { 
-      field: 'position', 
-      headerName: 'Должность', 
-      flex: 2, 
-      align: 'center', 
-      headerAlign: 'center' 
-    },
-    { 
-      field: 'rate', 
-      headerName: 'Ставка', 
-      flex: 1, 
-      align: 'center', 
-      headerAlign: 'center',
-      type: 'number'
-    },
-    { 
-      field: 'maxHours', 
-      headerName: 'Макс. часы', 
-      flex: 1, 
-      align: 'center', 
-      headerAlign: 'center',
-      type: 'number'
-    },
-    { 
-      field: 'recommendedMaxHours', 
-      headerName: 'Рек. часы', 
-      flex: 1, 
-      align: 'center', 
-      headerAlign: 'center',
-      type: 'number'
-    },
-    { 
-      field: 'minHours', 
-      headerName: 'Мин. часы', 
-      flex: 1, 
-      align: 'center', 
-      headerAlign: 'center',
-      type: 'number'
+    {
+      field: 'conditionalTransfer',
+      headerName: 'Условный перевод',
+      flex: 1.5,
+      type: 'boolean',
     },
   ];
 
@@ -178,7 +142,7 @@ const Teachers = () => {
         </Grid>
       </div>
 
-      <Card style={{ height: 700, width: '100%' }}>
+      <Card style={{ height: 800, width: '100%' }}>
         <DataGrid
           rows={filteredItems}
           columns={columns}
@@ -193,4 +157,4 @@ const Teachers = () => {
   );
 };
 
-export default Teachers;
+export default Students;

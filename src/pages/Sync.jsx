@@ -4,12 +4,41 @@ import axios from 'axios';
 import { useSnackbar } from 'notistack';
 import CloseIcon from '@mui/icons-material/Close';
 
+const SYNC_STATUS = {
+  SUCCESS: 'success',
+  ERROR: 'error',
+  IN_PROGRESS: 'in_progress',
+  UNKNOWN: 'unknown'
+};
+
 const SyncPage = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [syncStatus, setSyncStatus] = useState(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
+  const [serverReady, setServerReady] = useState(false);
+  const [loadingReady, setLoadingReady] = useState(true);
   const { enqueueSnackbar } = useSnackbar();
+
+  const getAlertSeverity = (status) => {
+    switch (status) {
+      case SYNC_STATUS.SUCCESS: return 'success';
+      case SYNC_STATUS.ERROR: return 'error';
+      case SYNC_STATUS.IN_PROGRESS:
+      case SYNC_STATUS.UNKNOWN: 
+      default: return 'info';
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case SYNC_STATUS.SUCCESS: return 'Успешно';
+      case SYNC_STATUS.ERROR: return 'Ошибка';
+      case SYNC_STATUS.IN_PROGRESS: return 'В процессе';
+      case SYNC_STATUS.UNKNOWN: return 'Статус неизвестен';
+      default: return 'Статус';
+    }
+  };
 
   useEffect(() => {
     const savedState = localStorage.getItem('syncState');
@@ -28,7 +57,17 @@ const SyncPage = () => {
         }
       }
     }
+
     fetchSyncStatus();
+    checkServerReady();
+    
+    const statusInterval = setInterval(fetchSyncStatus, 15000);
+    const readyInterval = setInterval(checkServerReady, 10000);
+    
+    return () => {
+      clearInterval(statusInterval);
+      clearInterval(readyInterval);
+    };
   }, []);
 
   useEffect(() => {
@@ -40,7 +79,7 @@ const SyncPage = () => {
             clearInterval(timer);
             setIsSyncing(false);
             localStorage.removeItem('syncState');
-            fetchSyncStatus(); // Обновляем статус после завершения синхронизации
+            fetchSyncStatus();
             return 0;
           }
           return prev - 1;
@@ -50,15 +89,42 @@ const SyncPage = () => {
     return () => clearInterval(timer);
   }, [isSyncing, timeLeft]);
 
+  const checkServerReady = async () => {
+    try {
+      setLoadingReady(true);
+      await axios.get(`${import.meta.env.VITE_API_URL}/ready`);
+      setServerReady(true);
+    } catch (error) {
+      console.error('Error checking server readiness:', error);
+      setServerReady(false);
+    } finally {
+      setLoadingReady(false);
+    }
+  };
+
   const fetchSyncStatus = async () => {
     try {
       setLoadingStatus(true);
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/status`);
-      setSyncStatus(response.data);
+      
+      const statusData = response.data;
+      let normalizedStatus = statusData.status || SYNC_STATUS.UNKNOWN;
+      
+      if (statusData.message?.includes('Synchronization in progress')) {
+        normalizedStatus = SYNC_STATUS.IN_PROGRESS;
+      } else if (statusData.message?.includes('status unknown')) {
+        normalizedStatus = SYNC_STATUS.UNKNOWN;
+      }
+      
+      setSyncStatus({
+        ...statusData,
+        normalizedStatus
+      });
     } catch (error) {
       console.error('Error fetching sync status:', error);
       setSyncStatus({
-        status: 'error',
+        status: SYNC_STATUS.ERROR,
+        normalizedStatus: SYNC_STATUS.ERROR,
         message: 'Не удалось получить статус синхронизации',
         error: error.message
       });
@@ -68,6 +134,12 @@ const SyncPage = () => {
   };
 
   const handleSync = async () => {
+    await checkServerReady();
+    if (!serverReady) {
+      enqueueSnackbar('Сервер не готов к синхронизации', { variant: 'error' });
+      return;
+    }
+
     try {
       setIsSyncing(true);
       setTimeLeft(60);
@@ -82,7 +154,6 @@ const SyncPage = () => {
       
       if (response.status === 200) {
         enqueueSnackbar('Синхронизация успешно запущена', { variant: 'success' });
-        // Обновляем статус после небольшой задержки
         setTimeout(fetchSyncStatus, 2000);
       }
     } catch (error) {
@@ -98,7 +169,7 @@ const SyncPage = () => {
       }
       
       enqueueSnackbar(errorMessage, { variant: 'error' });
-      fetchSyncStatus(); // Обновляем статус при ошибке
+      fetchSyncStatus();
     }
   };
 
@@ -108,6 +179,33 @@ const SyncPage = () => {
         <Typography variant="h5" sx={{ mb: 3 }}>
           Синхронизация данных
         </Typography>
+        
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          <Box
+            sx={{
+              width: 12,
+              height: 12,
+              borderRadius: '50%',
+              backgroundColor: loadingReady 
+                ? 'grey' 
+                : serverReady 
+                  ? 'success.main' 
+                  : 'error.main',
+              boxShadow: `0 0 8px ${loadingReady 
+                ? 'grey' 
+                : serverReady 
+                  ? 'success.main' 
+                  : 'error.main'}`
+            }}
+          />
+          <Typography variant="body2">
+            {loadingReady 
+              ? 'Проверка состояния сервера...' 
+              : serverReady 
+                ? 'Сервер готов' 
+                : 'Сервер не готов'}
+          </Typography>
+        </Box>
         
         {isSyncing ? (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -124,7 +222,7 @@ const SyncPage = () => {
             variant="contained"
             color="primary"
             onClick={handleSync}
-            disabled={isSyncing}
+            disabled={isSyncing || !serverReady}
             sx={{ minWidth: 200 }}
           >
             Начать синхронизацию
@@ -135,7 +233,6 @@ const SyncPage = () => {
           Синхронизация может занять несколько минут
         </Typography>
 
-        {/* Блок статуса синхронизации */}
         <Box sx={{ width: '100%', mt: 4 }}>
           <Typography variant="h6" sx={{ mb: 1 }}>
             Статус последней синхронизации
@@ -148,7 +245,7 @@ const SyncPage = () => {
           ) : syncStatus ? (
             <Collapse in={!!syncStatus}>
               <Alert
-                severity={syncStatus.status === 'success' ? 'success' : 'error'}
+                severity={getAlertSeverity(syncStatus.normalizedStatus)}
                 sx={{ mb: 2 }}
                 action={
                   <IconButton
@@ -162,14 +259,14 @@ const SyncPage = () => {
                 }
               >
                 <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                  {syncStatus.status === 'success' ? 'Успешно' : 'Ошибка'}
+                  {getStatusText(syncStatus.normalizedStatus)}
                 </Typography>
                 <Typography variant="body2">
                   {syncStatus.message}
                 </Typography>
                 {syncStatus.lastSync && (
                   <Typography variant="caption" display="block">
-                    Время: {syncStatus.lastSync}
+                    Время: {new Date(syncStatus.lastSync).toLocaleString()}
                   </Typography>
                 )}
                 {syncStatus.error && (

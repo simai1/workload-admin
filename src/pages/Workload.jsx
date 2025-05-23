@@ -161,7 +161,7 @@ const Workloads = () => {
     <div className="table-wrapper" style={{ padding: 20 }}>
       <div className="wrapper__filters" style={{ marginBottom: 20 }}>
         <Grid container spacing={2}>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item sx={{ width: '400px' }}>
             <FormControl fullWidth>
               <InputLabel>Параметр фильтрации</InputLabel>
               <Select
@@ -204,7 +204,7 @@ const Workloads = () => {
         </Grid>
       </div>
 
-      <Card style={{ height: 600, width: '100%' }}>
+      <Card style={{ height: 700, width: '100%' }}>
         <DataGrid
           rows={filteredItems}
           columns={columns}
