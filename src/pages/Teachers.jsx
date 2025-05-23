@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { DataGrid } from '@mui/x-data-grid';
-import { Card, TextField, Button, MenuItem, Select, FormControl, InputLabel, Grid, Checkbox, Typography } from '@mui/material';
+import { Card, TextField, Button, MenuItem, Select, FormControl, InputLabel, Grid, Typography } from '@mui/material';
 import axios from 'axios';
 
 const Teachers = () => {
@@ -17,11 +17,22 @@ const Teachers = () => {
   const fetchTeachers = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/educators`);
+      const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        throw new Error('Требуется авторизация');
+      }
+
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/educators`, {
+        headers: {
+          'Authorization': `Basic ${token}`
+        }
+      });
+      
       setTeachers(response.data);
     } catch (error) {
       console.error('Ошибка загрузки данных преподавателей:', error);
-      setError('Не удалось загрузить данные преподавателей');
+      setError(error.response?.data?.message || 'Не удалось загрузить данные преподавателей');
     } finally {
       setLoading(false);
     }

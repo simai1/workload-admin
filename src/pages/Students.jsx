@@ -27,11 +27,22 @@ const Students = () => {
   const fetchStudents = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/students`);
+      const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        throw new Error('Требуется авторизация');
+      }
+
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/students`, {
+        headers: {
+          'Authorization': `Basic ${token}`
+        }
+      });
+      
       setStudents(response.data);
     } catch (error) {
       console.error('Ошибка загрузки данных студентов:', error);
-      setError('Не удалось загрузить данные студентов');
+      setError(error.response?.data?.message || 'Не удалось загрузить данные студентов');
     } finally {
       setLoading(false);
     }

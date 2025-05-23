@@ -19,7 +19,6 @@ const Login = () => {
     setError(null);
 
     try {
-      // Создаем Basic Auth токен
       const token = btoa(`${loginValue}:${passwordValue}`);
       
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/auth`, {
@@ -29,13 +28,11 @@ const Login = () => {
       });
 
       if (response.status === 200) {
-        // Сохраняем токен в localStorage (если нужно)
         localStorage.setItem('authToken', token);
         navigate('/teachers');
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Неверный логин или пароль');
-      console.error('Ошибка аутентификации:', err);
     } finally {
       setLoading(false);
     }
@@ -43,24 +40,9 @@ const Login = () => {
 
   return (
     <div className="login__wrapper">
-      <Card
-        className="d-flex justify-center align-center overflow-hidden flex-column pa-10"
-        sx={{ 
-          width: 500, 
-          height: 400, 
-          display: 'flex', 
-          flexDirection: 'column', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          padding: 5 
-        }}
-      >
-        <form className="form__login" onSubmit={handleLogin} style={{ width: '100%' }}>
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
+      <Card sx={{ width: 500, height: 400, p: 5, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <form onSubmit={handleLogin} style={{ width: '100%' }}>
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
           
           <TextField
             label="Логин"
@@ -99,7 +81,6 @@ const Login = () => {
           <Button 
             type="submit" 
             variant="contained" 
-            color="primary" 
             fullWidth 
             sx={{ mt: 2 }}
             disabled={loading}

@@ -17,11 +17,22 @@ const Workloads = () => {
   const fetchWorkloads = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/workloads`);
+      const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        throw new Error('Требуется авторизация');
+      }
+
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/workloads`, {
+        headers: {
+          'Authorization': `Basic ${token}`
+        }
+      });
+      
       setWorkloads(response.data);
     } catch (error) {
       console.error('Ошибка загрузки данных нагрузки:', error);
-      setError('Не удалось загрузить данные учебной нагрузки');
+      setError(error.response?.data?.message || 'Не удалось загрузить данные учебной нагрузки');
     } finally {
       setLoading(false);
     }

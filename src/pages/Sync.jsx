@@ -150,7 +150,16 @@ const SyncPage = () => {
         syncStartTime: startTime
       }));
 
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/sync`);
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('Требуется авторизация');
+      }
+
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/sync`, {
+        headers: {
+          'Authorization': `Basic ${token}`
+        }
+      });
       
       if (response.status === 200) {
         enqueueSnackbar('Синхронизация успешно запущена', { variant: 'success' });
@@ -166,6 +175,8 @@ const SyncPage = () => {
         errorMessage += `: ${error.response.data.message || error.response.statusText}`;
       } else if (error.request) {
         errorMessage += ': Сервер не отвечает';
+      } else if (error.message === 'Требуется авторизация') {
+        errorMessage = 'Необходимо авторизоваться';
       }
       
       enqueueSnackbar(errorMessage, { variant: 'error' });
